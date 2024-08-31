@@ -14,8 +14,9 @@ import (
 func init() {
 	supportedBackends[FileBackend] = opener(func(cfg Config) (Keyring, error) {
 		return &fileKeyring{
-			dir:          cfg.FileDir,
-			passwordFunc: cfg.FilePasswordFunc,
+			dir:             cfg.FileDir,
+			passwordFunc:    cfg.FilePasswordFunc,
+			newPasswordFunc: cfg.FileNewPasswordFunc,
 		}, nil
 	})
 }
@@ -26,9 +27,11 @@ var filenameEscape = func(s string) string {
 var filenameUnescape = percent.Decode
 
 type fileKeyring struct {
-	dir          string
-	passwordFunc PromptFunc
-	password     string
+	dir             string
+	passwordFunc    PromptFunc
+	password        string
+	newPasswordFunc PromptFunc
+	newPassword     string
 }
 
 func (k *fileKeyring) resolveDir() (string, error) {
@@ -177,4 +180,58 @@ func (k *fileKeyring) Keys() ([]string, error) {
 	}
 
 	return keys, nil
+}
+
+func (k *fileKeyring) getNewPassword() error {
+	dir, err := k.resolveDir()
+	if err != nil {
+		return err
+	}
+
+	if k.newPassword == "" {
+		pwd, err := k.newPasswordFunc(fmt.Sprintf("Enter new passphrase for %q", dir))
+		if err != nil {
+			return err
+		}
+		k.newPassword = pwd
+	}
+	return nil
+}
+
+func (k *fileKeyring) Changepw(key string) error {
+	filename, err := k.filename(key)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := os.ReadFile(filename)
+	if os.IsNotExist(err) {
+		return ErrKeyNotFound
+	} else if err != nil {
+		return err
+	}
+
+	if err = k.unlock(); err != nil {
+		return err
+	}
+
+	if err = k.getNewPassword(); err != nil {
+		return err
+	}
+
+	payload, _, err := jose.Decode(string(bytes), k.password)
+	if err != nil {
+		return err
+	}
+
+	token, err := jose.Encrypt(payload, jose.PBES2_HS256_A128KW, jose.A256GCM, k.newPassword,
+		jose.Headers(map[string]interface{}{
+			"created": time.Now().String(),
+		}))
+
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filename, []byte(token), 0600)
 }

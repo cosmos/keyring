@@ -49,9 +49,11 @@ func main() {
 	}
 
 	ring, err := keyring.Open(keyring.Config{
-		ServiceName:     *serviceName,
-		AllowedBackends: allowedBackends,
-		KeychainName:    *keychainName,
+		ServiceName:         *serviceName,
+		AllowedBackends:     allowedBackends,
+		KeychainName:        *keychainName,
+		FilePasswordFunc:    keyring.TerminalPrompt,
+		FileNewPasswordFunc: keyring.TerminalPrompt,
 	})
 	if err != nil {
 		log.Fatal(err)
