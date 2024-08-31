@@ -15,6 +15,7 @@ func main() {
 	backend := flag.String("backend", "", "A specific backend to use")
 	debug := flag.Bool("debug", false, "Whether to enable debugging in keyring")
 	listBackends := flag.Bool("list-backends", false, "Whether to list backends")
+	fileDir := flag.String("filedir", "", "file backend storage directory")
 
 	// actions to take
 	actionListKeys := flag.Bool("list-keys", false, "Whether to list keys")
@@ -52,6 +53,7 @@ func main() {
 		ServiceName:         *serviceName,
 		AllowedBackends:     allowedBackends,
 		KeychainName:        *keychainName,
+		FileDir:             *fileDir,
 		FilePasswordFunc:    keyring.TerminalPrompt,
 		FileNewPasswordFunc: keyring.TerminalPrompt,
 	})
