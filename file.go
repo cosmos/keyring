@@ -14,9 +14,8 @@ import (
 func init() {
 	supportedBackends[FileBackend] = opener(func(cfg Config) (Keyring, error) {
 		return &fileKeyring{
-			dir:             cfg.FileDir,
-			passwordFunc:    cfg.FilePasswordFunc,
-			newPasswordFunc: cfg.FileNewPasswordFunc,
+			dir:          cfg.FileDir,
+			passwordFunc: cfg.FilePasswordFunc,
 		}, nil
 	})
 }
@@ -27,11 +26,9 @@ var filenameEscape = func(s string) string {
 var filenameUnescape = percent.Decode
 
 type fileKeyring struct {
-	dir             string
-	passwordFunc    PromptFunc
-	password        string
-	newPasswordFunc PromptFunc
-	newPassword     string
+	dir          string
+	passwordFunc PromptFunc
+	password     string
 }
 
 func (k *fileKeyring) resolveDir() (string, error) {
@@ -182,22 +179,6 @@ func (k *fileKeyring) Keys() ([]string, error) {
 	return keys, nil
 }
 
-func (k *fileKeyring) getNewPassword() error {
-	dir, err := k.resolveDir()
-	if err != nil {
-		return err
-	}
-
-	if k.newPassword == "" {
-		pwd, err := k.newPasswordFunc(fmt.Sprintf("Enter new passphrase for %q", dir))
-		if err != nil {
-			return err
-		}
-		k.newPassword = pwd
-	}
-	return nil
-}
-
 func (k *fileKeyring) Changepw(key string) error {
 	filename, err := k.filename(key)
 	if err != nil {
@@ -215,7 +196,8 @@ func (k *fileKeyring) Changepw(key string) error {
 		return err
 	}
 
-	if err = k.getNewPassword(); err != nil {
+	newPassword, err := k.passwordFunc(fmt.Sprintf("Enter new passphrase for %q", key))
+	if err != nil {
 		return err
 	}
 
@@ -224,7 +206,7 @@ func (k *fileKeyring) Changepw(key string) error {
 		return err
 	}
 
-	token, err := jose.Encrypt(payload, jose.PBES2_HS256_A128KW, jose.A256GCM, k.newPassword,
+	token, err := jose.Encrypt(payload, jose.PBES2_HS256_A128KW, jose.A256GCM, newPassword,
 		jose.Headers(map[string]interface{}{
 			"created": time.Now().String(),
 		}))

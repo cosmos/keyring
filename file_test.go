@@ -60,11 +60,30 @@ func TestFilenameWithBadChars(t *testing.T) {
 	}
 }
 
+type ChangePwGenerator struct {
+	changePwIndex   int
+	changePwStrings []string
+}
+
+func (generator *ChangePwGenerator) nextPassword() string {
+	nextPassword := generator.changePwStrings[generator.changePwIndex]
+	generator.changePwIndex++
+	return nextPassword
+}
+
+func ChangePwStringPrompt(values []string) PromptFunc {
+	generator := &ChangePwGenerator{
+		changePwStrings: values,
+	}
+	return func(_ string) (string, error) {
+		return generator.nextPassword(), nil
+	}
+}
+
 func TestFileKeyringChangepw(t *testing.T) {
 	k := &fileKeyring{
-		dir:             os.TempDir(),
-		passwordFunc:    FixedStringPrompt("no more secrets"),
-		newPasswordFunc: FixedStringPrompt("new secrets"),
+		dir:          os.TempDir(),
+		passwordFunc: ChangePwStringPrompt([]string{"no more secrets", "new secrets"}),
 	}
 	item := Item{Key: "llamas", Data: []byte("llamas are great")}
 
@@ -77,9 +96,8 @@ func TestFileKeyringChangepw(t *testing.T) {
 	}
 
 	k2 := &fileKeyring{
-		dir:             os.TempDir(),
-		passwordFunc:    FixedStringPrompt("new secrets"),
-		newPasswordFunc: FixedStringPrompt(""),
+		dir:          os.TempDir(),
+		passwordFunc: FixedStringPrompt("new secrets"),
 	}
 
 	foundItem, err := k2.Get(`llamas`)

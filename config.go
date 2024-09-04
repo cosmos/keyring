@@ -26,9 +26,6 @@ type Config struct {
 	// FilePasswordFunc is a required function used to prompt the user for a password
 	FilePasswordFunc PromptFunc
 
-	// FileNewPasswordFunc is a required function used to prompt the user for a new password
-	FileNewPasswordFunc PromptFunc
-
 	// FileDir is the directory that keyring files are stored in, ~/ is resolved to the users' home dir
 	FileDir string
 
