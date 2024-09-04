@@ -55,7 +55,6 @@ func main() {
 		KeychainName:        *keychainName,
 		FileDir:             *fileDir,
 		FilePasswordFunc:    keyring.TerminalPrompt,
-		FileNewPasswordFunc: keyring.TerminalPrompt,
 	})
 	if err != nil {
 		log.Fatal(err)
