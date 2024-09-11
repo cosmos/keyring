@@ -178,3 +178,42 @@ func (k *fileKeyring) Keys() ([]string, error) {
 
 	return keys, nil
 }
+
+func (k *fileKeyring) Changepw(key string) error {
+	filename, err := k.filename(key)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := os.ReadFile(filename)
+	if os.IsNotExist(err) {
+		return ErrKeyNotFound
+	} else if err != nil {
+		return err
+	}
+
+	if err = k.unlock(); err != nil {
+		return err
+	}
+
+	newPassword, err := k.passwordFunc(fmt.Sprintf("Enter new passphrase for %q", key))
+	if err != nil {
+		return err
+	}
+
+	payload, _, err := jose.Decode(string(bytes), k.password)
+	if err != nil {
+		return err
+	}
+
+	token, err := jose.Encrypt(payload, jose.PBES2_HS256_A128KW, jose.A256GCM, newPassword,
+		jose.Headers(map[string]interface{}{
+			"created": time.Now().String(),
+		}))
+
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filename, []byte(token), 0600)
+}
