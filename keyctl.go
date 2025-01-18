@@ -319,7 +319,7 @@ func keyctlConvertKeyBuffer(buffer []byte) ([]int32, error) {
 
 	results := make([]int32, 0, len(buffer)/4)
 	for i := 0; i < len(buffer); i += 4 {
-		// We need to case in host-native endianess here as this is what we get from the kernel.
+		// We need to case in host-native endianness here as this is what we get from the kernel.
 		r := *((*int32)(unsafe.Pointer(&buffer[i])))
 		results = append(results, r)
 	}
